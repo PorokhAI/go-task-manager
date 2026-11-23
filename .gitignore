@@ -1,0 +1,28 @@
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Go binaries
+*.exe
+*.out
+/bin/
+/dist/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage.out
+
+# Database backups
+backups/
+
+# Secrets
+secrets/

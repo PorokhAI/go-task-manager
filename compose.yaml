@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: task-manager-db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: ${DB_NAME}
+    secrets:
+      - db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  migrate:
+    image: task-manager-migrate
+    container_name: task-manager-migrate
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    command: ["up"]
+    networks:
+      - backend
+    environment:
+      PORT: ${PORT:-8080}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      DB_NAME: ${DB_NAME}
+    secrets:
+      - db_password
+
+  api:
+    image: task-manager-api
+    container_name: task-manager-api
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: ${PORT:-8080}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      DB_NAME: ${DB_NAME}
+    secrets:
+      - db_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  frontend:
+    driver: bridge
+
+  backend:
+    driver: bridge
+    internal: true
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
