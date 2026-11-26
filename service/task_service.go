@@ -10,9 +10,18 @@ import (
 )
 
 var (
-	ErrEmptyTitle   = errors.New("название задачи не может быть пустым")
-	ErrTaskNotFound = errors.New("задача не найдена")
+	ErrEmptyTitle      = errors.New("название задачи не может быть пустым")
+	ErrTaskNotFound    = errors.New("задача не найдена")
+	ErrInvalidPriority = errors.New("приоритет должен быть между 0 и 2")
 )
+
+func validatePriority(priority int) error {
+	if priority < 0 || priority > 2 {
+		return ErrInvalidPriority
+	}
+
+	return nil
+}
 
 type TaskService struct {
 	repo repository.TaskRepository
@@ -32,6 +41,10 @@ func (s *TaskService) Create(ctx context.Context, task model.Task) (model.Task, 
 		return model.Task{}, ErrEmptyTitle
 	}
 
+	if err := validatePriority(task.Priority); err != nil {
+		return model.Task{}, err
+	}
+
 	task.Title = title
 	return s.repo.Create(ctx, task)
 }
@@ -40,6 +53,10 @@ func (s *TaskService) Update(ctx context.Context, id int, task model.Task) (mode
 	title := strings.TrimSpace(task.Title)
 	if title == "" {
 		return model.Task{}, ErrEmptyTitle
+	}
+
+	if err := validatePriority(task.Priority); err != nil {
+		return model.Task{}, err
 	}
 
 	task.Title = title
@@ -63,6 +80,12 @@ func (s *TaskService) Patch(ctx context.Context, id int, patch model.TaskPatch) 
 		}
 
 		patch.Title = &title
+	}
+
+	if patch.Priority != nil {
+		if err := validatePriority(*patch.Priority); err != nil {
+			return model.Task{}, err
+		}
 	}
 
 	updatedTask, err := s.repo.Patch(ctx, id, patch)

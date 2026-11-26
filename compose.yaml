@@ -22,7 +22,7 @@ services:
       - backend
 
   migrate:
-    image: task-manager-migrate
+    image: ghcr.io/porokhai/go-task-manager-migrate:${IMAGE_TAG:-latest}
     container_name: task-manager-migrate
     env_file:
       - .env
@@ -45,7 +45,7 @@ services:
       - db_password
 
   api:
-    image: task-manager-api
+    image: ghcr.io/porokhai/go-task-manager-api:${IMAGE_TAG:-latest}
     container_name: task-manager-api
     restart: unless-stopped
 

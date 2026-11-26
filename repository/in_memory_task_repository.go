@@ -71,11 +71,18 @@ func (r *InMemoryTaskRepository) Patch(_ context.Context, id int, patch model.Ta
 
 	for i, task := range r.tasks {
 		if task.ID == id {
+
 			if patch.Title != nil {
 				task.Title = *patch.Title
 			}
 			if patch.IsDone != nil {
 				task.IsDone = *patch.IsDone
+			}
+			if patch.Description != nil {
+				task.Description = *patch.Description
+			}
+			if patch.Priority != nil {
+				task.Priority = *patch.Priority
 			}
 
 			r.tasks[i] = task

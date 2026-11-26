@@ -492,3 +492,62 @@ func TestTaskServiceGetAll(t *testing.T) {
 		t.Errorf("Ожидался 1 вызов GetAll, получено %d", repo.GetAllCalls)
 	}
 }
+
+func TestTaskServiceCreateInvalidPriority(t *testing.T) {
+	repo := NewFakeTaskRepository([]model.Task{})
+	service := NewTaskService(repo)
+
+	_, err := service.Create(context.Background(), model.Task{
+		Title:    "Learn Go",
+		Priority: 3,
+	})
+
+	if !errors.Is(err, ErrInvalidPriority) {
+		t.Fatalf("expected %v, got %v", ErrInvalidPriority, err)
+	}
+
+	if repo.CreateCalls != 0 {
+		t.Errorf("expected 0 Create calls, got %d", repo.CreateCalls)
+	}
+}
+
+func TestTaskServiceUpdateInvalidPriority(t *testing.T) {
+	repo := NewFakeTaskRepository([]model.Task{
+		{ID: 1, Title: "Learn Go"},
+	})
+	service := NewTaskService(repo)
+
+	_, err := service.Update(context.Background(), 1, model.Task{
+		Title:    "Learn Go",
+		Priority: -1,
+	})
+
+	if !errors.Is(err, ErrInvalidPriority) {
+		t.Fatalf("expected %v, got %v", ErrInvalidPriority, err)
+	}
+
+	if repo.UpdateCalls != 0 {
+		t.Errorf("expected 0 Update calls, got %d", repo.UpdateCalls)
+	}
+}
+
+func TestTaskServicePatchInvalidPriority(t *testing.T) {
+	repo := NewFakeTaskRepository([]model.Task{
+		{ID: 1, Title: "Learn Go"},
+	})
+	service := NewTaskService(repo)
+
+	priority := 5
+
+	_, err := service.Patch(context.Background(), 1, model.TaskPatch{
+		Priority: &priority,
+	})
+
+	if !errors.Is(err, ErrInvalidPriority) {
+		t.Fatalf("expected %v, got %v", ErrInvalidPriority, err)
+	}
+
+	if repo.PatchCalls != 0 {
+		t.Errorf("expected 0 Patch calls, got %d", repo.PatchCalls)
+	}
+}

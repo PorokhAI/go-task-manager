@@ -63,6 +63,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	createdTask, err := h.Service.Create(r.Context(), newTask)
+
 	if errors.Is(err, service.ErrEmptyTitle) {
 		http.Error(
 			w,
@@ -71,6 +72,12 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
+
+	if errors.Is(err, service.ErrInvalidPriority) {
+		http.Error(w, "Приоритет должен быть от 0 до 2", http.StatusBadRequest)
+		return
+	}
+
 	if err != nil {
 		http.Error(w, "Ошибка создания задачи", http.StatusInternalServerError)
 		return
@@ -99,9 +106,15 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updatedTask, updateError := h.Service.Update(r.Context(), taskId, updatedTask)
+
 	if errors.Is(updateError, service.ErrEmptyTitle) {
 		http.Error(w, "Название задачи не может быть пустым",
 			http.StatusBadRequest)
+		return
+	}
+
+	if errors.Is(updateError, service.ErrInvalidPriority) {
+		http.Error(w, "Приоритет должен быть от 0 до 2", http.StatusBadRequest)
 		return
 	}
 
@@ -139,7 +152,10 @@ func (h *TaskHandler) Patch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if patch.Title == nil && patch.IsDone == nil {
+	if patch.Title == nil &&
+		patch.IsDone == nil &&
+		patch.Description == nil &&
+		patch.Priority == nil {
 		http.Error(w, "Нет полей для обновления", http.StatusBadRequest)
 		return
 	}
@@ -148,6 +164,11 @@ func (h *TaskHandler) Patch(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(patchError, service.ErrEmptyTitle) {
 		http.Error(w, "Название задачи не может быть пустым",
 			http.StatusBadRequest)
+		return
+	}
+
+	if errors.Is(patchError, service.ErrInvalidPriority) {
+		http.Error(w, "Приоритет должен быть от 0 до 2", http.StatusBadRequest)
 		return
 	}
 

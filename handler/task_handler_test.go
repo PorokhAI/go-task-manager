@@ -554,3 +554,104 @@ func TestRouterDeleteTaskNotFound(t *testing.T) {
 		)
 	}
 }
+
+func TestTaskHandlerCreateInvalidPriority(t *testing.T) {
+	handler := newTestTaskHandler()
+
+	body := `{"title":"Изучить Go","priority":3}`
+	req := httptest.NewRequest(http.MethodPost, "/tasks", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+
+	handler.Create(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("ожидался статус 400, получен %d", rec.Code)
+	}
+}
+
+func TestTaskHandlerUpdateInvalidPriority(t *testing.T) {
+	handler := newTestTaskHandler()
+
+	task, err := handler.Service.Create(context.Background(), model.Task{
+		Title: "Изучить Go",
+	})
+	if err != nil {
+		t.Fatalf("не удалось создать задачу: %v", err)
+	}
+
+	body := `{"title":"Изучить Go","priority":-1}`
+	req := httptest.NewRequest(
+		http.MethodPut,
+		fmt.Sprintf("/tasks/%d", task.ID),
+		strings.NewReader(body),
+	)
+	req.SetPathValue("id", strconv.Itoa(task.ID))
+
+	rec := httptest.NewRecorder()
+	handler.Update(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("ожидался статус 400, получен %d", rec.Code)
+	}
+}
+
+func TestTaskHandlerPatchInvalidPriority(t *testing.T) {
+	handler := newTestTaskHandler()
+
+	task, err := handler.Service.Create(context.Background(), model.Task{
+		Title: "Изучить Go",
+	})
+	if err != nil {
+		t.Fatalf("не удалось создать задачу: %v", err)
+	}
+
+	body := `{"priority":3}`
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		fmt.Sprintf("/tasks/%d", task.ID),
+		strings.NewReader(body),
+	)
+	req.SetPathValue("id", strconv.Itoa(task.ID))
+
+	rec := httptest.NewRecorder()
+	handler.Patch(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("ожидался статус 400, получен %d", rec.Code)
+	}
+}
+
+func TestTaskHandlerPatchOnlyPriority(t *testing.T) {
+	handler := newTestTaskHandler()
+
+	task, err := handler.Service.Create(context.Background(), model.Task{
+		Title: "Изучить Go",
+	})
+	if err != nil {
+		t.Fatalf("не удалось создать задачу: %v", err)
+	}
+
+	body := `{"priority":2}`
+	req := httptest.NewRequest(
+		http.MethodPatch,
+		fmt.Sprintf("/tasks/%d", task.ID),
+		strings.NewReader(body),
+	)
+	req.SetPathValue("id", strconv.Itoa(task.ID))
+
+	rec := httptest.NewRecorder()
+	handler.Patch(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ожидался статус 200, получен %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var updatedTask model.Task
+	if err := json.NewDecoder(rec.Body).Decode(&updatedTask); err != nil {
+		t.Fatalf("не удалось декодировать ответ: %v", err)
+	}
+
+	if updatedTask.Priority != 2 {
+		t.Errorf("ожидался priority 2, получен %d", updatedTask.Priority)
+	}
+}
